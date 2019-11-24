@@ -1,0 +1,20 @@
+use_model = 'BaseMLP'
+
+[models.BaseMLP]
+in_channels = 32
+middle_channels = 64
+middle_depth = 3
+out_channels = 1
+activation = 'ReLU'
+last_activation = ''
+drop_out = 0.5
+batch_norm = false
+
+[optimizer.adam]
+alpha = 0.1
+beta = 0.09
+
+[training]
+batchsize = 64
+loss = 'mean_absolute_error'
+scheduler = 'cosine'

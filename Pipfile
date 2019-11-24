@@ -1,0 +1,19 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+mypy = "*"
+flake8 = "*"
+
+[packages]
+toml = "*"
+jinja2 = "*"
+clint = "*"
+click = "*"
+configer = "*"
+pyyaml = "*"
+
+[requires]
+python_version = "3.7"
