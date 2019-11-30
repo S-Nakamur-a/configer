@@ -24,7 +24,6 @@ class Config(NamedTuple):
     def load(path: Union[Path, str]):
         """load setting file and convert it to Config class"""
         setting_path = path
-        "load latest default values from toml file"
         assert isinstance(setting_path, Path) or isinstance(setting_path, str), "setting_path must be Pathlike {}".format(type(setting_path))
         setting_path = Path(setting_path)
         assert setting_path.is_file(), "setting_path should be a path to setting file {}".format(setting_path)
