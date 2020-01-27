@@ -106,6 +106,7 @@ class Configer:
                     'hash_value': Configer.hash_md5(setting_file_path),
                     'output': str(output_file_path)
                 }
+            yaml.safe_dump(current_contents, f)
 
 
 def get_arg_parser():
