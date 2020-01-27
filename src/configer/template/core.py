@@ -34,7 +34,7 @@ class Config(_Config):
                     continue
                 if dataclasses.is_dataclass(child_obj):
                     check_type(child_obj)
-                if child_obj is None and (field.type is None):
+                if child_obj is None and field.type is None:
                     continue
                 assert type(child_obj) == field.type, \
                     get_type_error_message(field.name, str(field.type), str(type(child_obj)))
