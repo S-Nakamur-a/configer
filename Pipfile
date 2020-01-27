@@ -9,10 +9,8 @@ flake8 = "*"
 
 [packages]
 toml = "*"
-jinja2 = "*"
 clint = "*"
 click = "*"
-configer = "*"
 pyyaml = "*"
 prestring = "*"
 
