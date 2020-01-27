@@ -1,63 +1,11 @@
 import typing
-import dataclasses
 import pathlib
 import toml
 import yaml
+import dataclasses
+from clint import textui
 import random
 import shutil
-
-
-@dataclasses.dataclass(frozen=True)
-class ModelsBaseMLP:
-    in_channels: int
-    middle_channels: int
-    middle_depth: int
-    out_channels: int
-    activation: str
-    last_activation: str
-    drop_out: float
-    batch_norm: bool
-
-
-
-@dataclasses.dataclass(frozen=True)
-class Models:
-    BaseMLP: ModelsBaseMLP
-
-
-
-@dataclasses.dataclass(frozen=True)
-class OptimizerAdam:
-    alpha: typing.Tuple[float, int]
-    beta: float
-
-
-
-@dataclasses.dataclass(frozen=True)
-class Optimizer:
-    adam: OptimizerAdam
-
-
-
-@dataclasses.dataclass(frozen=True)
-class Training:
-    batchsize: int
-    loss: str
-    scheduler: str
-
-
-
-@dataclasses.dataclass(frozen=True)
-class _Config:
-    models: Models
-    use_model: str
-    optimizer: Optimizer
-    training: Training
-
-
-
-
-from clint import textui
 
 
 @dataclasses.dataclass(frozen=True)

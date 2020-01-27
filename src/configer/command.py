@@ -2,17 +2,13 @@ from pathlib import Path
 from argparse import ArgumentParser
 import hashlib
 
-from jinja2 import Environment, FileSystemLoader
 import toml
 import yaml
-
-try:
-    from yaml import CLoader as YamlLoader, CDumper as YamlDumper
-except ImportError:
-    from yaml import Loader as YamlLoader, Dumper as YamlDumper
 from clint.textui import colored, puts
+from prestring import output as prestring_output
 
 from .config_parser import ConfigParser
+from .template.config import generate
 
 
 lock_file_path = Path('.config.lock')
@@ -31,7 +27,7 @@ class Configer:
                 setting = toml.load(f)
         elif setting_file_path.suffix == '.yaml' or setting_file_path.suffix == '.yml':
             with setting_file_path.open('r') as f:
-                setting = yaml.load(f, Loader=YamlLoader)
+                setting = yaml.safe_load(f)
         else:
             raise RuntimeError('Not support type (Toml / Yaml)')
         return setting
@@ -67,7 +63,7 @@ class Configer:
             exit()
 
         with lock_file_path.open('r') as f:
-            registered_setting_files = yaml.load(f, Loader=YamlLoader)
+            registered_setting_files = yaml.safe_load(f)
             for registered_setting_file, contents in registered_setting_files.items():
                 previous_hash = contents['hash_value']
                 output_file = contents['output']
@@ -84,30 +80,23 @@ class Configer:
     def create_from_files(setting_file_path: Path, output_file_path: Path):
         assert setting_file_path.is_file(), setting_file_path
 
-        template_file = Path(__file__).parent / 'template' / 'config.py.j2'
+        template_file = Path(__file__).parent / 'template' / 'config.py'
         assert template_file.is_file(), str(template_file)
-
-        # Load template.
-        env = Environment(loader=FileSystemLoader(searchpath=str(template_file.parent), encoding='utf_8_sig'))
-        tpl = env.get_template(str(template_file.name))
 
         # Load Setting
         config_parser = ConfigParser()
         setting = Configer.load_setting(setting_file_path)
         params = [config_parser.parse(k, v, parent_class_name=None) for k, v in setting.items()]
-
         # Render
-        render = tpl.render(
-            {'params': params, 'sduiyvcaishrugoasdgo': setting_file_path,
-             'named_tuples': list(config_parser.named_tuples.values())})
-        # Output
-        with output_file_path.open('w', encoding='utf_8_sig') as stream:
-            stream.write(render)
-        # Logging
-        # 一度中身を読み込み、既に登録済みであれば更新、なければ新規作成する
+        config_string = generate(list(config_parser.dataclasses.values()), params)
+        with prestring_output.output(root=output_file_path.parent) as fs:
+            with fs.open(str(output_file_path.name), 'w') as wf:
+                print(config_string, file=wf)
+
+        # Log
         if lock_file_path.is_file():
             with open(lock_file_path, 'r') as f:
-                current_contents = yaml.load(f, Loader=YamlLoader)
+                current_contents = yaml.safe_load(f)
                 if not isinstance(current_contents, dict):
                     current_contents = {}
         else:
@@ -117,7 +106,6 @@ class Configer:
                     'hash_value': Configer.hash_md5(setting_file_path),
                     'output': str(output_file_path)
                 }
-            yaml.dump(current_contents, f, Dumper=YamlDumper)
 
 
 def get_arg_parser():

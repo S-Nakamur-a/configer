@@ -11,7 +11,7 @@ models:
 use_model: BaseMLP
 optimizer:
   adam:
-    alpha: 0.1
+    alpha: [0.1, 0.8]
     beta: 0.09
 
 training:
