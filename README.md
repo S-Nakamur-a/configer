@@ -9,10 +9,12 @@ configを自動生成する
 echo ".config.lock" >> ./.gitignore
 pip install git+https://github.com/Nkriskeeic/configer#egg=configer
 mkdir setting
-vi setting/setting.yml (もちろんemacsでもよい)
+vi setting/default.yml (もちろんemacsでもよい)
+vi setting/optimizer.yml (もちろんemacsでもよい)
+vi setting/training.yml (もちろんemacsでもよい)
 ```
 
-- setting.ymlには以下の内容を記述（例）
+- default.ymlには以下の内容を記述（例）
 ```yaml
 models:
   BaseMLP:
@@ -36,34 +38,40 @@ training:
   batchsize: 64
 ```
 
-- settingを読み込む
-```shell script
-configer create --setting setting/setting.yml --output config.py
+- optimizer.ymlには以下の内容を記述（例）
+
+```yaml
+optimizer:
+  adam:
+    alpha: 0.2
+```
+- training.ymlには以下の内容を記述（例）
+```yaml
+training:
+  batchsize: 128
 ```
 
-config.pyが生成される
+- settingを読み込む
+```shell script
+configer create --setting setting/default.yml --output default.py
+```
 
-- \[setting.ymlを更新した場合\]
+default.pyが生成される
+
+実装する時
+```python
+from default import ConfigGenerator, Config
+config = ConfigGenerator(default_from='setting/default.yml')\
+            .generate()  # default値が使用される
+
+config = ConfigGenerator(default_from='setting/default.yml')\
+            .update(['optimizer.yml', 'training.yml'])
+            .generate()  # default値が上書きされて使用される
+
+config.training.batchsize  # intでサジェストされる
+```
+
+- \[default.ymlを更新した場合\]
 ```shell script
 configer update
 ````
-
-## config.pyがあると嬉しいこと
-
-```python
-from config import Config
-# 設定値を読み込む
-# configerで指定したファイルが読み込まれる
-my_config = Config.load(setting_file_path)
-
-# wait_yesをTrueにすると設定値を表示したまま一時停止する
-# ここで設定値に問題がないかをチェックする
-my_config.pprint(wait_yes=True)
-
-# 設定値を保存する
-my_config.save(some_out_dir)
-
-# 実際に設定値にアクセスする
-in_channels = my_config.models.BaseMLP.in_channels  # 予測変換はもちろん，int型をエディタが認識する
-```
-
