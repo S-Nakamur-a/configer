@@ -44,5 +44,12 @@ class TestConfig(unittest.TestCase):
 
         self.assertEqual(config.optimizer.adam.alpha, 1.)
 
-        # os.remove(str(self.out_path))
         config.pprint(wait=False)
+        out_file = self.config_path.parent / 'out.yml'
+        config.save_as(out_file, 'yaml')
+
+        config2 = ConfigGenerator(default_from=self.config_path).update_by(out_file).generate()
+        self.assertEqual(config, config2)
+        config2.pprint(wait=False)
+        os.remove(str(self.out_path))
+        os.remove(str(out_file))

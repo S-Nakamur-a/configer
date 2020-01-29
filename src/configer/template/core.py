@@ -47,6 +47,20 @@ class Config(_Config):
                 print("OK, now re-check your settings.")
                 exit()
 
+    def save_as(self, out_path: TypePathLike, data_type: str):
+        out_path = pathlib.Path(out_path)
+        out_dir: pathlib.Path = out_path.parent
+        if not out_dir.is_dir():
+            out_dir.mkdir(exist_ok=False)
+        with out_path.open('w') as f:
+            current_dict = dataclasses.asdict(self)
+            if data_type == 'yml' or data_type == 'yaml':
+                yaml.safe_dump(current_dict, f)
+            elif data_type == 'toml':
+                toml.dump(current_dict, f)
+            else:
+                raise RuntimeError('Not supported type.')
+
 
 class ConfigGenerator:
     def __init__(self, default_from: TypePathLike):
@@ -69,6 +83,16 @@ class ConfigGenerator:
                 params = yaml.safe_load(f)
         else:
             raise RuntimeError('Not support type (Toml / Yaml)')
+
+        def list_to_tuple(d: typing.Dict[str, typing.Any]):
+            for k, v in d.items():
+                if isinstance(v, list):
+                    d[k] = tuple(v)
+                elif isinstance(v, dict):
+                    list_to_tuple(v)
+
+        list_to_tuple(params)
+
         return params
 
     def check_type(self):
@@ -79,7 +103,6 @@ class ConfigGenerator:
             for field in dataclasses.fields(obj):
                 child_obj = obj.__getattribute__(field.name)
                 if type(child_obj) == list or type(child_obj) == tuple:
-                    child_obj = tuple(child_obj)
                     actual_type = [str(type(c)) for c in child_obj]
                     if len(field.type.__args__) == 1 \
                             or (len(field.type.__args__) == 2 and field.type.__args__[-1] == Ellipsis):
@@ -111,8 +134,7 @@ class ConfigGenerator:
                 else:
                     default_v = obj.__getattribute__(k)
                     if isinstance(v, list):
-                        v = tuple(v)
-                    assert default_v == v, f'{k} is modified from {default_v} to {v}'
+                        assert default_v == v, f'{k} is modified from {default_v} to {v}'
         _check_default(self._config, self._default_params)
 
     def generate(self):
