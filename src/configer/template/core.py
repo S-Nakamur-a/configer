@@ -10,7 +10,9 @@ TypePathLike = typing.Union[str, pathlib.Path]
 
 
 class ConfigGenerator:
-    def __init__(self):
+    def __init__(self, default_from: TypePathLike):
+        self._default_from = default_from
+        self._default_params: typing.Dict[str, typing.Any] = self.__load(pathlib.Path(default_from))
         self._update_params: typing.Dict[str, typing.Any] = {}
         self._config: typing.Optional[Config] = None
 
@@ -29,11 +31,11 @@ class ConfigGenerator:
             raise RuntimeError('Not support type (Toml / Yaml)')
         return params
 
-    def type_check(self):
+    def check_type(self):
         def get_type_error_message(key: str, expected_type: str, actual_type: str):
             return f"{key} is expected {expected_type}, actual {actual_type}"
 
-        def _type_check(obj: dataclasses.dataclass):
+        def _check_type(obj: dataclasses.dataclass):
             for field in dataclasses.fields(obj):
                 child_obj = obj.__getattribute__(field.name)
                 if type(child_obj) == list or type(child_obj) == tuple:
@@ -50,21 +52,34 @@ class ConfigGenerator:
                             get_type_error_message(field.name, str(field.type), f"Tuple[{actual_type}]")
                     continue
                 if dataclasses.is_dataclass(child_obj):
-                    _type_check(child_obj)
+                    _check_type(child_obj)
                 if child_obj is None and (field.type is None):
                     continue
                 assert type(child_obj) == field.type, \
                     get_type_error_message(field.name, str(field.type), str(type(child_obj)))
         try:
-            _type_check(self._config)
+            _check_type(self._config)
         except AssertionError as e:
             print(e)
             exit(1)
 
+    def check_default(self):
+        def _check_default(obj, d: typing.Dict[str, typing.Any]):
+            for k, v in d.items():
+                if isinstance(v, dict):
+                    _check_default(obj.__getattribute__(k), v)
+                else:
+                    default_v = obj.__getattribute__(k)
+                    if isinstance(v, list):
+                        v = tuple(v)
+                    assert default_v == v, f'{k} is modified from {default_v} to {v}'
+        _check_default(self._config, self._default_params)
+
     def generate(self):
         self._config = Config()
+        self.check_default()
         self.__set_params()
-        self.type_check()
+        self.check_type()
         return self._config
 
     def update_by(self, file_paths: typing.Union[TypePathLike, typing.Iterable[TypePathLike]]):
@@ -72,7 +87,7 @@ class ConfigGenerator:
             file_paths = [file_paths]
         if len(file_paths) == 0:
             return
-        elif len(file_paths):
+        elif len(file_paths) > 1:
             self._update_params.update(reduce(self.safe_file_merge, file_paths))
         else:
             self._update_params.update(self.__load(file_paths[0]))
@@ -86,10 +101,10 @@ class ConfigGenerator:
         def get_keys(d: typing.Dict[str, typing.Any], parent_key: str = ''):
             keys = []
             for k in d:
-                if not isinstance(d[k], dict):
-                    keys.extend(get_keys(d[k], parent_key=f'{k}/'))
+                if isinstance(d[k], dict):
+                    keys.extend(get_keys(d[k], parent_key=f'{parent_key}/{k}'))
                 else:
-                    keys.append(f'{parent_key}{k}')
+                    keys.append(f'{parent_key}/{k}')
             return keys
 
         d1_keys = set(get_keys(d1))
@@ -109,6 +124,8 @@ class ConfigGenerator:
                 if not isinstance(v, dict):
                     setattr(obj, k, v)
                 else:
-                    __set(obj.__getattribute__(k), v)
+                    try:
+                        __set(obj.__getattribute__(k), v)
+                    except AttributeError:
+                        raise AttributeError(f'キー {k} が{self._default_from}で定義されていません')
         __set(self._config, self._update_params)
-

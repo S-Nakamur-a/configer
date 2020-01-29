@@ -15,7 +15,7 @@ optimizer:
     beta: 0.09
 training:
   batchsize: 64
-  loss: mean_absolute_error
+  loss: 'mean_absolute_error'
   scheduler: cosine
 
 hoge:

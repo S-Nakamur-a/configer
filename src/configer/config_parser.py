@@ -5,6 +5,7 @@ from collections import OrderedDict
 class ConfigParser:
     def __init__(self):
         self.dataclasses = OrderedDict()
+        self.post_inits = []
 
     def get_type_and_default(self, value: Any, this_class_name: Optional[str] = None, parent_class_name: Optional[str] = None)\
             -> Tuple[str, Any]:
@@ -20,8 +21,9 @@ class ConfigParser:
         # Tupleとして保存し、各要素の型を記述する
         if isinstance(value, list) or isinstance(value, tuple):
             keys_and_defaults = [self.get_type_and_default(v, this_class_name) for v in value]
-            return f'typing.Tuple[{", ".join([k for k, d in keys_and_defaults])}]', \
-                   tuple([d for k, d in keys_and_defaults])
+            return f'typing.Tuple[{", ".join([k for k, d in keys_and_defaults])}]',\
+                   f'({",".join(tuple([str(d) for k, d in keys_and_defaults]))})'
+
 
         # Dict
         # 新たなdataclassとして新規クラス名を作成する
@@ -30,7 +32,7 @@ class ConfigParser:
             if parent_class_name is None:
                 self.make_dataclass_from_dict(this_class_name, value)
                 parent_class_name = ''
-            return parent_class_name + this_class_name, parent_class_name + this_class_name + '()'
+            return parent_class_name + this_class_name, 'None'
 
         # primitive types
         # Python表記に直していく
@@ -39,11 +41,11 @@ class ConfigParser:
         if type(value) == float:
             return 'float', value
         if type(value) == str:
-            return 'str', f'"{value}"'
+            return 'str', f'\'{value}\''
         if type(value) == bool:
             return 'bool', value
         if value is None:
-            return 'None', value
+            return 'None', 'None'
         raise NotImplementedError(f'Type: {type(value)} not supported')
 
     def parse(self, key: str, value: Any, parent_class_name: Optional[str] = None) -> str:
@@ -61,6 +63,9 @@ class ConfigParser:
         """
         this_key_class_name = self.to_class_name(key)
         key_name, default = self.get_type_and_default(value, this_key_class_name, parent_class_name)
+        if default == 'None' and key_name != 'None':
+            self.post_inits.append(f"self.{key} = {key_name}()")
+            return f'{key}: {key_name} = dataclasses.field(init=False)'
         return f'{key}: {key_name} = {default}'
 
     def make_dataclass_from_dict(self, class_name: str, _dict: dict) -> None:
@@ -71,9 +76,21 @@ class ConfigParser:
             assert type(k) == str
 
         # _dictのkeyとvalueからdataclassを生成する
-        class_def = "@dataclasses.dataclass\nclass {}:\n    {}\n".format(
-            class_name, '\n    '.join([self.parse(
-                k, v, parent_class_name=class_name) for k, v in _dict.items()]))
+        members = [self.parse(k, v, parent_class_name=class_name) for k, v in _dict.items()]
+        indent = "    "
+        members = f'\n{indent}'.join(members)
+        if len(self.post_inits) > 0:
+            post_inits = f'\n{indent}{indent}'.join([f'{pi}' for pi in self.post_inits])
+            class_def = f"@dataclasses.dataclass\n" \
+                        f"class {class_name}:\n" \
+                        f"{indent}{members}\n\n" \
+                        f"{indent}def __post_init__(self):\n" \
+                        f"{indent}{indent}{post_inits}"
+        else:
+            class_def = f"@dataclasses.dataclass\n" \
+                        f"class {class_name}:\n" \
+                        f"{indent}{members}"
+        self.post_inits = []
         # 既に登録済みのclassはスルーする
         if class_name in self.dataclasses and len(self.dataclasses[class_name]) > len(class_def):
             return
