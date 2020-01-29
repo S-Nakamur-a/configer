@@ -11,6 +11,24 @@ from clint import textui
 TypePathLike = typing.Union[str, pathlib.Path]
 
 
+class ConflictError(Exception):
+    def __init__(self, key_and_origins: typing.Tuple[typing.Tuple[str, TypePathLike], typing.Tuple[str, TypePathLike]]):
+        super(ConflictError, self).__init__(
+            f"Detect conflict. Check {key_and_origins[0][0]} in {key_and_origins[0][1]}"
+            f" and {key_and_origins[1][0]} in {key_and_origins[1][1]}")
+
+
+class InvalidDefaultFromError(Exception):
+    def __init__(self, key, default_value, this_value):
+        super(InvalidDefaultFromError, self).__init__(f'{key} is modified from {default_value} to {this_value}')
+
+
+class InvalidTypeError(Exception):
+    def __init__(self, key: str, expected_type: str, actual_type: str):
+        super(InvalidTypeError, self).__init__(f"{key} is expected {expected_type}, actual {actual_type}")
+
+
+
 @dataclasses.dataclass
 class Config(_Config):
     _origins: typing.ClassVar[typing.Dict[str, TypePathLike]]
@@ -19,6 +37,7 @@ class Config(_Config):
         default_config = dataclasses.asdict(_Config())
 
         """print setting values"""
+
         def print_dict(d1: dict, d2: dict, depth: int = 0, parent_key: str = ''):
             for k1, v1 in d1.items():
                 indent = ' ' * depth
@@ -88,60 +107,59 @@ class ConfigGenerator:
             for k, v in d.items():
                 if isinstance(v, list):
                     d[k] = tuple(v)
-                elif isinstance(v, dict):
+                if isinstance(v, dict):
                     list_to_tuple(v)
 
         list_to_tuple(params)
 
         return params
 
-    def check_type(self):
-        def get_type_error_message(key: str, expected_type: str, actual_type: str):
-            return f"{key} is expected {expected_type}, actual {actual_type}"
+    def _check_type(self):
 
         def _check_type(obj: dataclasses.dataclass):
             for field in dataclasses.fields(obj):
                 child_obj = obj.__getattribute__(field.name)
-                if type(child_obj) == list or type(child_obj) == tuple:
+
+                if type(child_obj) == tuple:
                     actual_type = [str(type(c)) for c in child_obj]
                     if len(field.type.__args__) == 1 \
                             or (len(field.type.__args__) == 2 and field.type.__args__[-1] == Ellipsis):
-                        assert all([isinstance(c, field.type.__args__[0]) for c in child_obj]), \
-                            get_type_error_message(field.name, str(field.type), f"Tuple[{actual_type}]")
+                        if not all([isinstance(c, field.type.__args__[0]) for c in child_obj]):
+                            raise InvalidTypeError(field.name, str(field.type), f"Tuple[{actual_type}]")
                     else:
-                        assert len(field.type.__args__) == len(child_obj), \
-                            get_type_error_message(field.name, str(field.type), f"Tuple[{actual_type}]")
-                        assert all([isinstance(c, t) for c, t in zip(child_obj, field.type.__args__)]), \
-                            get_type_error_message(field.name, str(field.type), f"Tuple[{actual_type}]")
+                        if len(field.type.__args__) != len(child_obj):
+                            raise InvalidTypeError(field.name, str(field.type), f"Tuple[{actual_type}]")
+                        if not all([isinstance(c, t) for c, t in zip(child_obj, field.type.__args__)]):
+                            raise InvalidTypeError(field.name, str(field.type), f"Tuple[{actual_type}]")
                     continue
                 if dataclasses.is_dataclass(child_obj):
                     _check_type(child_obj)
                 if child_obj is None and (field.type is None):
                     continue
-                assert type(child_obj) == field.type, \
-                    get_type_error_message(field.name, str(field.type), str(type(child_obj)))
-        try:
-            _check_type(self._config)
-        except AssertionError as e:
-            print(e)
-            exit(1)
+                if type(child_obj) != field.type:
+                    raise InvalidTypeError(field.name, str(field.type), str(type(child_obj)))
+        if self._config is None:
+            raise RuntimeError('generateが呼ばれていません')
 
-    def check_default(self):
+        _check_type(self._config)
+
+    def _check_default(self):
         def _check_default(obj, d: typing.Dict[str, typing.Any]):
             for k, v in d.items():
                 if isinstance(v, dict):
                     _check_default(obj.__getattribute__(k), v)
                 else:
                     default_v = obj.__getattribute__(k)
-                    if isinstance(v, list):
-                        assert default_v == v, f'{k} is modified from {default_v} to {v}'
+                    if default_v != v:
+                        raise InvalidDefaultFromError(k, default_v, v)
+
         _check_default(self._config, self._default_params)
 
     def generate(self) -> Config:
         self._config = Config()
-        self.check_default()
-        self.__set_params()
-        self.check_type()
+        self._check_default()
+        self._set_params()
+        self._check_type()
         return self._config
 
     def update_by(self, file_paths: typing.Union[TypePathLike, typing.Iterable[TypePathLike]]):
@@ -150,7 +168,7 @@ class ConfigGenerator:
         if len(file_paths) == 0:
             return
         elif len(file_paths) > 1:
-            _update_nested_dict(self._update_params, reduce(self.safe_file_merge, file_paths))
+            _update_nested_dict(self._update_params, reduce(self._safe_file_merge, file_paths))
         else:
             d = self.__load(file_paths[0])
             _update_nested_dict(self._update_params, d)
@@ -158,7 +176,7 @@ class ConfigGenerator:
                 self._origins[d_k] = file_paths[0]
         return self
 
-    def safe_file_merge(self, file_1: TypePathLike, file_2: TypePathLike)\
+    def _safe_file_merge(self, file_1: TypePathLike, file_2: TypePathLike) \
             -> typing.Dict[str, typing.Any]:
         d1 = self.__load(pathlib.Path(file_1))
         d2 = self.__load(pathlib.Path(file_2))
@@ -170,12 +188,13 @@ class ConfigGenerator:
             self._origins[d1_key] = file_1
             for d2_key in d2_keys:
                 self._origins[d2_key] = file_2
-                assert not(d1_key.startswith(d2_key) or d2_key.startswith(d1_key)),\
-                    f'Detect conflict. Check {d1_key} in {file_1} and {d2_key} in {file_2}'
+                if d1_key.startswith(d2_key) or d2_key.startswith(d1_key):
+                    raise ConflictError(((d1_key, file_1), (d2_key, file_2)))
+
         _update_nested_dict(d1, d2)
         return d1
 
-    def __set_params(self):
+    def _set_params(self):
         def __set(obj, d: typing.Dict[str, typing.Any]):
             for k, v in d.items():
                 if not isinstance(v, dict):
@@ -185,6 +204,7 @@ class ConfigGenerator:
                         __set(obj.__getattribute__(k), v)
                     except AttributeError:
                         raise AttributeError(f'キー {k} が{self._default_from}で定義されていません')
+
         __set(self._config, self._update_params)
         self._config._origins = self._origins
 
