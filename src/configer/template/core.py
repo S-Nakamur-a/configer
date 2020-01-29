@@ -137,7 +137,7 @@ class ConfigGenerator:
                         assert default_v == v, f'{k} is modified from {default_v} to {v}'
         _check_default(self._config, self._default_params)
 
-    def generate(self):
+    def generate(self) -> Config:
         self._config = Config()
         self.check_default()
         self.__set_params()
