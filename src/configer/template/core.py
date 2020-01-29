@@ -11,19 +11,23 @@ from clint import textui
 TypePathLike = typing.Union[str, pathlib.Path]
 
 
-class ConflictError(Exception):
+class ConfigerError(Exception):
+    pass
+
+
+class ConflictError(ConfigerError):
     def __init__(self, key_and_origins: typing.Tuple[typing.Tuple[str, TypePathLike], typing.Tuple[str, TypePathLike]]):
         super(ConflictError, self).__init__(
             f"Detect conflict. Check {key_and_origins[0][0]} in {key_and_origins[0][1]}"
             f" and {key_and_origins[1][0]} in {key_and_origins[1][1]}")
 
 
-class InvalidDefaultFromError(Exception):
+class InvalidDefaultFromError(ConfigerError):
     def __init__(self, key, default_value, this_value):
         super(InvalidDefaultFromError, self).__init__(f'{key} is modified from {default_value} to {this_value}')
 
 
-class InvalidTypeError(Exception):
+class InvalidTypeError(ConfigerError):
     def __init__(self, key: str, expected_type: str, actual_type: str):
         super(InvalidTypeError, self).__init__(f"{key} is expected {expected_type}, actual {actual_type}")
 
