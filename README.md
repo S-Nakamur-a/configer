@@ -1,20 +1,36 @@
 # 概要
 
-configを自動生成する
+configファイルをPythonに直書きするのはちょっと気が引けるし、
+yamlとかで管理したいけどそうすると補完が効かなくなるし型アノテーションも出来なくなるし、
+う〜〜〜〜ん！という方のためのconfigモジュール
+
+なるべくyacsから乗り換えやすく設計したつもり
+
+- 全てのconfigのデフォルト値を１つのyamlに記述しておく（yacsのpythonファイルと同じノリ）
+- configer cliを提供しているので、上のyamlからdefault.pyを生成する
+- default.pyに、ConfigGeneratorとConfigがクラスとして用意されている
+- main.pyとかで `config = ConfigGenerator(default_from='default.yml').generate()` のように書けば, yamlファイルの内容をPythonオブジェクトとして生成してくれる
+- `config = ConfigGenerator(default_from='default.yml').update('hoge.yml').generate()`とかで一部を上書きして使用することも出来る（型が一致していないと落ちる）
+- `config.pprint(wait=True)`とかでconfigを見やすく表示してくれる
+- `config.save(out_path, 'yaml')`とかで最終的なconfigを保存してくれる
+- 次回は`config = ConfigGenerator(default_from='default.yml').update(out_path).generate()`で同じ内容を復元できる
 
 ## 使用方法
 
-- インストール
+### インストール
 ```shell script
-echo ".config.lock" >> ./.gitignore
 pip install git+https://github.com/Nkriskeeic/configer#egg=configer
-mkdir setting
-vi setting/default.yml (もちろんemacsでもよい)
-vi setting/optimizer.yml (もちろんemacsでもよい)
-vi setting/training.yml (もちろんemacsでもよい)
 ```
 
-- default.ymlには以下の内容を記述（例）
+### default.ymlからdefault.pyを生成する
+
+```shell script
+echo ".config.lock" >> ./.gitignore  # どのdefault.ymlからどのdefault.pyを生成したかを記録するためのファイル
+mkdir setting
+vi setting/default.yml (もちろんemacsでもよい)
+```
+
+default.ymlには以下の内容を記述（例）
 ```yaml
 models:
   BaseMLP:
@@ -38,40 +54,58 @@ training:
   batchsize: 64
 ```
 
-- optimizer.ymlには以下の内容を記述（例）
+生成する
+```shell script
+configer create --setting setting/default.yml --output default.py
+```
 
+### コード上から利用する
+```python
+from default import ConfigGenerator, Config
+config: Config = ConfigGenerator(default_from='setting/default.yml').generate()  # default値が使用される
+config.pprint(wait=False)  # configを表示してくれる
+in_channels = config.models.BaseMLP.in_channels  # サジェストが出るし、int型であることを追ってくれる
+```
+
+### 一部の設定を上書きして利用する
+
+設定値は全てdefault.ymlに存在し、型が同じ時だけ上書きを許している
+
+- （例）optimizer.ymlに以下の内容を記述
+```shell script
+vi setting/optimizer.yml
+```
 ```yaml
 optimizer:
   adam:
     alpha: 0.2
 ```
 - training.ymlには以下の内容を記述（例）
+```shell script
+vi setting/training.yml (もちろんemacsでもよい)
+```
 ```yaml
 training:
   batchsize: 128
 ```
 
-- settingを読み込む
-```shell script
-configer create --setting setting/default.yml --output default.py
-```
+### コード内で呼び出す
 
-default.pyが生成される
-
-実装する時
 ```python
-from default import ConfigGenerator, Config
 config = ConfigGenerator(default_from='setting/default.yml')\
-            .generate()  # default値が使用される
-
+            .update(['setting/optimizer.yml', 'setting/training.yml'])  # optimizerとtrainingで同じ項目を上書きしようとするとエラーになる
+            .generate()  # default値が上書きされて使用される
 config = ConfigGenerator(default_from='setting/default.yml')\
-            .update(['optimizer.yml', 'training.yml'])
+            .update('setting/optimizer.yml')  # updateを分ければ衝突項目があっても問題ない
+            .update('setting/training.yml')  # 仮に衝突する項目がある場合は、後からupdateしたほうが優先される
             .generate()  # default値が上書きされて使用される
 
-config.training.batchsize  # intでサジェストされる
+# 保存
+config.save_as('some_path', 'yaml')  # yaml形式で保存する
 ```
 
-- \[default.ymlを更新した場合\]
+### default.ymlを更新した場合
 ```shell script
 configer update
 ````
+lockファイルを見て更新があればcreateしたときと同じパスで更新をかけてくれる
