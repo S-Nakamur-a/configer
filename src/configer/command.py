@@ -50,16 +50,16 @@ class Configer:
 
     @staticmethod
     def create(args):
-        """create config.py form setting.toml and generate config.py"""
+        """create config.py form default.toml and generate config.py"""
         setting_file = args.setting
         output_file = args.output
-        Configer.create_from_files(Path(setting_file), Path(output_file))
+        Configer.create_from_file(Path(setting_file), Path(output_file))
 
     @staticmethod
     def update(args):
         """logファイル内のすべてのファイルについてhashから変更を検出し更新をかける"""
         if not lock_file_path.is_file():
-            print("You should create config.py from setting.toml")
+            print("You should create config.py from default.toml")
             exit()
 
         with lock_file_path.open('r') as f:
@@ -71,13 +71,13 @@ class Configer:
                 current_hash = Configer.hash_md5(Path(registered_setting_file))
 
                 if current_hash != previous_hash:
-                    Configer.create_from_files(Path(registered_setting_file), Path(output_file))
+                    Configer.create_from_file(Path(registered_setting_file), Path(output_file))
                     puts(colored.yellow(f'Updated {registered_setting_file}'))
                 else:
                     puts(colored.green(f'No changes in {registered_setting_file}'))
 
     @staticmethod
-    def create_from_files(setting_file_path: Path, output_file_path: Path):
+    def create_from_file(setting_file_path: Path, output_file_path: Path):
         assert setting_file_path.is_file(), setting_file_path
 
         template_file = Path(__file__).parent / 'template' / 'config.py'
@@ -115,9 +115,9 @@ def get_arg_parser():
 
     # config create
     config_create = subparsers.add_parser(
-        'create', help='create config.py from your setting.toml')
+        'create', help='create config.py from your default.toml')
     config_create.add_argument(
-        '-s', '--setting', required=False, type=str, help='path to setting file [toml]', default='setting/setting.toml')
+        '-s', '--setting', required=False, type=str, help='path to setting file [toml]', default='setting/default.toml')
     config_create.add_argument(
         '-o', '--output', required=False, type=str, help='path to output config file [python]', default='config.py')
     config_create.set_defaults(handler=Configer.create)

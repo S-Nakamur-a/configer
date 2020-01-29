@@ -11,11 +11,13 @@ models:
 use_model: BaseMLP
 optimizer:
   adam:
-    alpha: [0.1, 0.8]
+    alpha: 0.1
     beta: 0.09
-
 training:
   batchsize: 64
   loss: mean_absolute_error
   scheduler: cosine
+
+hoge:
+  piyo: [1, 2, 'str']
 

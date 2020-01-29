@@ -2,7 +2,6 @@ from typing import List
 from pathlib import Path
 
 from prestring.python import PythonModule
-from prestring.go import GoModule
 
 
 def generate(my_dataclasses: List[str], params: List[str]):
@@ -21,8 +20,8 @@ def generate(my_dataclasses: List[str], params: List[str]):
         m.stmt(my_dataclass)
         m.sep()
 
-    m.stmt("@dataclasses.dataclass(frozen=True)")
-    with m.class_("_Config"):
+    m.stmt("@dataclasses.dataclass")
+    with m.class_("Config"):
         for key in params:
             m.stmt(key)
 

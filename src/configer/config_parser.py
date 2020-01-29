@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 from collections import OrderedDict
 
 
@@ -6,7 +6,8 @@ class ConfigParser:
     def __init__(self):
         self.dataclasses = OrderedDict()
 
-    def get_type(self, value: Any, this_class_name: Optional[str] = None, parent_class_name: Optional[str] = None) -> str:
+    def get_type_and_default(self, value: Any, this_class_name: Optional[str] = None, parent_class_name: Optional[str] = None)\
+            -> Tuple[str, Any]:
         """
         設定ファイルから型名を得る
         :param value: 設定値そのもの
@@ -18,7 +19,9 @@ class ConfigParser:
         # List, Tuple
         # Tupleとして保存し、各要素の型を記述する
         if isinstance(value, list) or isinstance(value, tuple):
-            return f'typing.Tuple[{", ".join([self.get_type(v, this_class_name) for v in value])}]'
+            keys_and_defaults = [self.get_type_and_default(v, this_class_name) for v in value]
+            return f'typing.Tuple[{", ".join([k for k, d in keys_and_defaults])}]', \
+                   tuple([d for k, d in keys_and_defaults])
 
         # Dict
         # 新たなdataclassとして新規クラス名を作成する
@@ -27,20 +30,20 @@ class ConfigParser:
             if parent_class_name is None:
                 self.make_dataclass_from_dict(this_class_name, value)
                 parent_class_name = ''
-            return parent_class_name + this_class_name
+            return parent_class_name + this_class_name, parent_class_name + this_class_name + '()'
 
         # primitive types
         # Python表記に直していく
         if type(value) == int:
-            return 'int'
+            return 'int', value
         if type(value) == float:
-            return 'float'
+            return 'float', value
         if type(value) == str:
-            return 'str'
+            return 'str', f'"{value}"'
         if type(value) == bool:
-            return 'bool'
+            return 'bool', value
         if value is None:
-            return 'None'
+            return 'None', value
         raise NotImplementedError(f'Type: {type(value)} not supported')
 
     def parse(self, key: str, value: Any, parent_class_name: Optional[str] = None) -> str:
@@ -57,7 +60,8 @@ class ConfigParser:
         :return:
         """
         this_key_class_name = self.to_class_name(key)
-        return f'{key}: {self.get_type(value, this_key_class_name, parent_class_name)}'
+        key_name, default = self.get_type_and_default(value, this_key_class_name, parent_class_name)
+        return f'{key}: {key_name} = {default}'
 
     def make_dataclass_from_dict(self, class_name: str, _dict: dict) -> None:
         # _dictのvalueにdictの型が存在しなくなるまで掘っていく
@@ -67,7 +71,7 @@ class ConfigParser:
             assert type(k) == str
 
         # _dictのkeyとvalueからdataclassを生成する
-        class_def = "@dataclasses.dataclass(frozen=True)\nclass {}:\n    {}\n".format(
+        class_def = "@dataclasses.dataclass\nclass {}:\n    {}\n".format(
             class_name, '\n    '.join([self.parse(
                 k, v, parent_class_name=class_name) for k, v in _dict.items()]))
         # 既に登録済みのclassはスルーする

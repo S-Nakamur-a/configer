@@ -1,0 +1,6 @@
+models:
+  BaseMLP:
+    in_channels: 3
+    middle_channels: 128
+    middle_depth: 10
+    out_channels: 3

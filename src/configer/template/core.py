@@ -3,20 +3,37 @@ import pathlib
 import toml
 import yaml
 import dataclasses
-from clint import textui
-import random
-import shutil
+from functools import reduce
+from collections.abc import Iterable
+
+TypePathLike = typing.Union[str, pathlib.Path]
 
 
-@dataclasses.dataclass(frozen=True)
-class Config(_Config):
-    origin_config_path: typing.ClassVar[pathlib.Path] = pathlib.Path()
+class ConfigGenerator:
+    def __init__(self):
+        self._update_params: typing.Dict[str, typing.Any] = {}
+        self._config: typing.Optional[Config] = None
 
-    def __post_init__(self):
+    @staticmethod
+    def __load(file: pathlib.Path):
+        assert isinstance(file, pathlib.Path), f'file expected: pathlib.Path, actual {type(file)}'
+        assert file.is_file(), f'{file} is not a valid file path'
+        # Load Setting
+        if file.suffix == '.toml':
+            with file.open('r') as f:
+                params = toml.load(f)
+        elif file.suffix == '.yaml' or file.suffix == '.yml':
+            with file.open('r') as f:
+                params = yaml.safe_load(f)
+        else:
+            raise RuntimeError('Not support type (Toml / Yaml)')
+        return params
+
+    def type_check(self):
         def get_type_error_message(key: str, expected_type: str, actual_type: str):
             return f"{key} is expected {expected_type}, actual {actual_type}"
 
-        def check_type(obj: dataclasses.dataclass):
+        def _type_check(obj: dataclasses.dataclass):
             for field in dataclasses.fields(obj):
                 child_obj = obj.__getattribute__(field.name)
                 if type(child_obj) == list or type(child_obj) == tuple:
@@ -33,86 +50,65 @@ class Config(_Config):
                             get_type_error_message(field.name, str(field.type), f"Tuple[{actual_type}]")
                     continue
                 if dataclasses.is_dataclass(child_obj):
-                    check_type(child_obj)
-                if child_obj is None and field.type is None:
+                    _type_check(child_obj)
+                if child_obj is None and (field.type is None):
                     continue
                 assert type(child_obj) == field.type, \
                     get_type_error_message(field.name, str(field.type), str(type(child_obj)))
         try:
-            check_type(self)
+            _type_check(self._config)
         except AssertionError as e:
             print(e)
             exit(1)
 
-    @staticmethod
-    def load(path: typing.Union[pathlib.Path, str]):
-        """load setting file and convert it to Config class"""
-        setting_path = path
-        assert isinstance(setting_path, pathlib.Path) \
-               or isinstance(setting_path, str), \
-            "setting_path must be pathlib.Pathlike {}".format(type(setting_path))
-        setting_path = pathlib.Path(setting_path)
-        assert setting_path.is_file(), \
-            "setting_path should be a path to setting file {}".format(setting_path)
-        # Load Setting
-        if setting_path.suffix == '.toml':
-            with setting_path.open('r') as f:
-                params = toml.load(f)
-        elif setting_path.suffix == '.yaml' or setting_path.suffix == '.yml':
-            with setting_path.open('r') as f:
-                params = yaml.safe_load(f)
+    def generate(self):
+        self._config = Config()
+        self.__set_params()
+        self.type_check()
+        return self._config
+
+    def update_by(self, file_paths: typing.Union[TypePathLike, typing.Iterable[TypePathLike]]):
+        if not isinstance(file_paths, Iterable):
+            file_paths = [file_paths]
+        if len(file_paths) == 0:
+            return
+        elif len(file_paths):
+            self._update_params.update(reduce(self.safe_file_merge, file_paths))
         else:
-            raise RuntimeError('Not support type (Toml / Yaml)')
-        Config.origin_config_path = path
-        return Config(**Config.__convert_to_proper_name(params))
+            self._update_params.update(self.__load(file_paths[0]))
+        return self
 
-    def pprint(self, wait_yes: bool):
-        """print setting values"""
+    def safe_file_merge(self, file_1: TypePathLike, file_2: TypePathLike)\
+            -> typing.Dict[str, typing.Any]:
+        d1 = self.__load(pathlib.Path(file_1))
+        d2 = self.__load(pathlib.Path(file_2))
 
-        def print_dict(d: dict, depth: int = 0):
-            for k, v in d.items():
-                if isinstance(v, dict):
-                    textui.puts("{}{}".format(
-                        '\t' * depth,
-                        textui.colored.blue(k)))
-                    print_dict(v, depth + 1)
+        def get_keys(d: typing.Dict[str, typing.Any], parent_key: str = ''):
+            keys = []
+            for k in d:
+                if not isinstance(d[k], dict):
+                    keys.extend(get_keys(d[k], parent_key=f'{k}/'))
                 else:
-                    textui.puts("{}{}\t{}".format(
-                        '\t' * depth,
-                        textui.colored.blue(k),
-                        textui.colored.green(str(v))))
+                    keys.append(f'{parent_key}{k}')
+            return keys
 
-        print_dict(dataclasses.asdict(self), 0)
+        d1_keys = set(get_keys(d1))
+        d2_keys = set(get_keys(d2))
 
-        if wait_yes:
-            random_code = ''.join(random.choices([str(i) for i in range(10)], k=3))
-            ans = input(
-                'Check setting values. If these are OK, you input this one-time code [{}] > '.format(random_code))
-            if ans == random_code:
-                return
-            else:
-                print("OK, now re-check your settings.")
-                exit()
+        for d1_key in d1_keys:
+            for d2_key in d2_keys:
+                assert not(d1_key.startswith(d2_key) or d2_key.startswith(d1_key)),\
+                    f'Detect conflict. Check {d1_key} in {file_1} and {d2_key} in {file_2}'
 
-    @staticmethod
-    def save(out_dir: typing.Union[pathlib.Path, str]):
-        """save setting values"""
-        out_dir = pathlib.Path(out_dir)
-        shutil.copy2(str(Config.origin_config_path.resolve()),
-                     str(out_dir / Config.origin_config_path.name))
+        d1.update(d2)
+        return d1
 
-    @staticmethod
-    def __convert_to_proper_name(params):
-        for key, val in params.items():
-            if isinstance(val, dict):
-                params[key] = Config.__to_proper(key, val)
-        return params
+    def __set_params(self):
+        def __set(obj, d: typing.Dict[str, typing.Any]):
+            for k, v in d.items():
+                if not isinstance(v, dict):
+                    setattr(obj, k, v)
+                else:
+                    __set(obj.__getattribute__(k), v)
+        __set(self._config, self._update_params)
 
-    @staticmethod
-    def __to_proper(key, value: dict):
-        key = key[0].capitalize() + key[1:]
-        for k, v in value.items():
-            if isinstance(v, dict):
-                value[k] = Config.__to_proper(
-                    key + ''.join([_k[0].capitalize() + _k[1:] for _k in k.split('_')]), v)
-        return globals()[key](**value)
