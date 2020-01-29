@@ -31,7 +31,7 @@ class Config(_Config):
                         textui.puts(f"{indent}{textui.colored.blue(k1)}: {textui.colored.green(str(v1))}")
                     else:
                         origin_k = f'{parent_key}/{k1}'
-                        textui.puts(f"{indent}{textui.colored.blue(k1)}: {textui.colored.yellow(str(v1))}"
+                        textui.puts(f"{indent}{textui.colored.yellow(k1)}: {textui.colored.red(str(v1))}"
                                     f" (default: {textui.colored.green(str(d2[k1]))}, "
                                     f"changed by {self._origins[origin_k]})")
 

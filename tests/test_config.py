@@ -50,6 +50,5 @@ class TestConfig(unittest.TestCase):
 
         config2 = ConfigGenerator(default_from=self.config_path).update_by(out_file).generate()
         self.assertEqual(config, config2)
-        config2.pprint(wait=False)
         os.remove(str(self.out_path))
         os.remove(str(out_file))
