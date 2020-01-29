@@ -21,7 +21,7 @@ def generate(my_dataclasses: List[str], params: List[str]):
         m.stmt(m.newline)
 
     m.stmt("@dataclasses.dataclass")
-    with m.class_("Config"):
+    with m.class_("_Config"):
         post_inits = []
         for key in params:
             if 'dataclasses.field(init=False)' in key:

@@ -1,11 +1,86 @@
 import typing
+import dataclasses
 import pathlib
 import toml
 import yaml
-import dataclasses
+import random
+import shutil
+
+
+@dataclasses.dataclass
+class ModelsBaseMLP:
+    in_channels: int = 32
+    middle_channels: int = 64
+    middle_depth: int = 3
+    out_channels: int = 1
+    activation: str = 'ReLU'
+    last_activation: str = ''
+    drop_out: float = 0.5
+    batch_norm: bool = False
+
+
+@dataclasses.dataclass
+class Models:
+    BaseMLP: ModelsBaseMLP = dataclasses.field(init=False)
+
+    def __post_init__(self):
+        self.BaseMLP = ModelsBaseMLP()
+
+
+@dataclasses.dataclass
+class OptimizerAdam:
+    alpha: float = 0.1
+    beta: float = 0.09
+
+    def __post_init__(self):
+        self.models = Models()
+
+
+@dataclasses.dataclass
+class Optimizer:
+    adam: OptimizerAdam = dataclasses.field(init=False)
+
+    def __post_init__(self):
+        self.adam = OptimizerAdam()
+
+
+@dataclasses.dataclass
+class Training:
+    batchsize: int = 64
+    loss: str = 'mean_absolute_error'
+    scheduler: str = 'cosine'
+
+    def __post_init__(self):
+        self.optimizer = Optimizer()
+
+
+@dataclasses.dataclass
+class Hoge:
+    piyo: typing.Tuple[int, int, str] = (1,2,'str')
+
+    def __post_init__(self):
+        self.training = Training()
+
+
+@dataclasses.dataclass
+class _Config:
+    models: Models = dataclasses.field(init=False)
+    use_model: str = 'BaseMLP'
+    optimizer: Optimizer = dataclasses.field(init=False)
+    training: Training = dataclasses.field(init=False)
+    hoge: Hoge = dataclasses.field(init=False)
+    
+
+    def __post_init__(self):
+        self.models = Models()
+        self.optimizer = Optimizer()
+        self.training = Training()
+        self.hoge = Hoge()
+
+
+
 from functools import reduce
 from collections.abc import Iterable
-import random
 from clint import textui
 
 TypePathLike = typing.Union[str, pathlib.Path]

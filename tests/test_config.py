@@ -2,6 +2,7 @@ import os
 import unittest
 from pathlib import Path
 from src.configer.command import Configer
+import dataclasses
 
 
 class TestConfig(unittest.TestCase):
@@ -43,4 +44,5 @@ class TestConfig(unittest.TestCase):
 
         self.assertEqual(config.optimizer.adam.alpha, 1.)
 
-        os.remove(str(self.out_path))
+        # os.remove(str(self.out_path))
+        config.pprint(wait=False)

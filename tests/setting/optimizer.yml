@@ -1,3 +1,4 @@
 optimizer:
   adam:
     alpha: 0.2
+    beta: 0.08
