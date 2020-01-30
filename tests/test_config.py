@@ -2,7 +2,6 @@ import os
 import unittest
 from pathlib import Path
 from src.configer.command import Configer
-import dataclasses
 
 
 class TestConfig(unittest.TestCase):
@@ -48,7 +47,6 @@ class TestConfig(unittest.TestCase):
             InvalidTypeError,
             ConfigGenerator(default_from=self.config_path).update_by(self.config_optimizer_type_error_path).generate,
         )
-
 
         config = ConfigGenerator(default_from=self.config_path) \
             .update_by(self.config_optimizer_path) \
