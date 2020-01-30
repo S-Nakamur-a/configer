@@ -18,6 +18,3 @@ training:
   loss: 'mean_absolute_error'
   scheduler: cosine
 
-hoge:
-  piyo: [1, 2, 'str']
-

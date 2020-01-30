@@ -1,3 +1,7 @@
+# Generate From configer
+# Please do not modify.
+# If you want to do, edit your default.yml, and run `configer update` on your terminal.
+
 from typing import List
 from pathlib import Path
 

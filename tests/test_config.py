@@ -18,9 +18,9 @@ class TestConfig(unittest.TestCase):
         Configer.create_from_file(self.config_path, self.out_path)
 
     def test_load(self):
-        from tests.config import ConfigGenerator, ConflictError, InvalidDefaultFromError, InvalidTypeError
+        from tests.config import ConfigGenerator, ConflictError, InvalidTypeError
 
-        config = ConfigGenerator(default_from=self.config_path) \
+        config = ConfigGenerator() \
             .update_by([self.config_models_path, self.config_optimizer_path]) \
             .generate()
 
@@ -29,26 +29,21 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.models.BaseMLP.batch_norm, False)
         self.assertEqual(config.use_model, 'BaseMLP')
 
-        config = ConfigGenerator(default_from=self.config_path).generate()
+        config = ConfigGenerator().generate()
         self.assertEqual(config.models.BaseMLP.in_channels, 32)
 
         self.assertRaises(
             ConflictError,
-            ConfigGenerator(default_from=self.config_path).update_by,
+            ConfigGenerator().update_by,
             [self.config_models_conflict_path, self.config_optimizer_path]
         )
 
         self.assertRaises(
-            InvalidDefaultFromError,
-            ConfigGenerator(default_from=self.config_path_2).generate,
-        )
-
-        self.assertRaises(
             InvalidTypeError,
-            ConfigGenerator(default_from=self.config_path).update_by(self.config_optimizer_type_error_path).generate,
+            ConfigGenerator().update_by(self.config_optimizer_type_error_path).generate,
         )
 
-        config = ConfigGenerator(default_from=self.config_path) \
+        config = ConfigGenerator() \
             .update_by(self.config_optimizer_path) \
             .update_by(self.config_models_conflict_path) \
             .generate()
@@ -59,7 +54,7 @@ class TestConfig(unittest.TestCase):
         out_file = self.config_path.parent / 'out.yml'
         config.save_as(out_file, 'yaml')
 
-        config2 = ConfigGenerator(default_from=self.config_path).update_by(out_file).generate()
+        config2 = ConfigGenerator().update_by(out_file).generate()
         self.assertEqual(config, config2)
-        os.remove(str(self.out_path))
+        # os.remove(str(self.out_path))
         os.remove(str(out_file))

@@ -86,10 +86,8 @@ class Config(_Config):
 
 
 class ConfigGenerator:
-    def __init__(self, default_from: TypePathLike):
+    def __init__(self):
         self._origins: typing.Dict[str, TypePathLike] = {}
-        self._default_from = default_from
-        self._default_params: typing.Dict[str, typing.Any] = self.__load(pathlib.Path(default_from))
         self._update_params: typing.Dict[str, typing.Any] = {}
         self._config: typing.Optional[Config] = None
 
@@ -151,21 +149,8 @@ class ConfigGenerator:
 
         _check_type(self._config)
 
-    def _check_default(self):
-        def _check_default(obj, d: typing.Dict[str, typing.Any]):
-            for k, v in d.items():
-                if isinstance(v, dict):
-                    _check_default(obj.__getattribute__(k), v)
-                else:
-                    default_v = obj.__getattribute__(k)
-                    if default_v != v:
-                        raise InvalidDefaultFromError(k, default_v, v)
-
-        _check_default(self._config, self._default_params)
-
     def generate(self) -> Config:
         self._config = Config()
-        self._check_default()
         self._set_params()
         self._check_type()
         return self._config
