@@ -1,6 +1,5 @@
 from pathlib import Path
 from argparse import ArgumentParser
-import hashlib
 
 import toml
 import yaml
@@ -9,6 +8,7 @@ from prestring import output as prestring_output
 
 from .config_parser import ConfigParser
 from .template.config import generate
+from .template.utils import hash_md5
 
 
 lock_file_path = Path('.config.lock')
@@ -33,22 +33,6 @@ class Configer:
         return setting
 
     @staticmethod
-    def hash_md5(setting_file_path: Path) -> str:
-        """
-        設定ファイルの変更を追跡するためにhashを作成している
-        :param setting_file_path:
-        :return:
-        """
-        BLOCKSIZE = 65536
-        hasher = hashlib.md5()
-        with setting_file_path.open('rb') as f:
-            buf = f.read(BLOCKSIZE)
-            while len(buf) > 0:
-                hasher.update(buf)
-                buf = f.read(BLOCKSIZE)
-        return hasher.hexdigest()
-
-    @staticmethod
     def create(args):
         """create config.py form default.toml and generate config.py"""
         setting_file = args.setting
@@ -68,7 +52,7 @@ class Configer:
                 previous_hash = contents['hash_value']
                 output_file = contents['output']
 
-                current_hash = Configer.hash_md5(Path(registered_setting_file))
+                current_hash = hash_md5(Path(registered_setting_file))
 
                 if current_hash != previous_hash:
                     Configer.create_from_file(Path(registered_setting_file), Path(output_file))
@@ -88,7 +72,11 @@ class Configer:
         setting = Configer.load_setting(setting_file_path)
         params = [config_parser.parse(k, v, parent_class_name=None) for k, v in setting.items()]
         # Render
-        config_string = generate(list(config_parser.dataclasses.values()), params)
+        config_string = generate(
+            list(config_parser.dataclasses.values()),
+            params,
+            str(setting_file_path),
+            hash_md5(setting_file_path))
         with prestring_output.output(root=output_file_path.parent) as fs:
             with fs.open(str(output_file_path.name), 'w') as wf:
                 print(config_string, file=wf)
@@ -103,7 +91,7 @@ class Configer:
             current_contents = {}
         with open(lock_file_path, 'w') as f:
             current_contents[str(setting_file_path)] = {
-                    'hash_value': Configer.hash_md5(setting_file_path),
+                    'hash_value': hash_md5(setting_file_path),
                     'output': str(output_file_path)
                 }
             yaml.safe_dump(current_contents, f)

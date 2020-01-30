@@ -18,9 +18,9 @@ class TestConfig(unittest.TestCase):
         Configer.create_from_file(self.config_path, self.out_path)
 
     def test_load(self):
-        from tests.config import ConfigGenerator, ConflictError, InvalidTypeError
+        from tests.config import ConfigGenerator, ConflictError, InvalidTypeError, ChangeDefaultError
 
-        config = ConfigGenerator() \
+        config = ConfigGenerator(assert_identical=True) \
             .update_by([self.config_models_path, self.config_optimizer_path]) \
             .generate()
 
@@ -43,6 +43,11 @@ class TestConfig(unittest.TestCase):
             ConfigGenerator().update_by(self.config_optimizer_type_error_path).generate,
         )
 
+        self.assertRaises(
+            ChangeDefaultError,
+            ConfigGenerator(identical_to=self.config_path_2).generate,
+        )
+
         config = ConfigGenerator() \
             .update_by(self.config_optimizer_path) \
             .update_by(self.config_models_conflict_path) \
@@ -56,5 +61,5 @@ class TestConfig(unittest.TestCase):
 
         config2 = ConfigGenerator().update_by(out_file).generate()
         self.assertEqual(config, config2)
-        # os.remove(str(self.out_path))
+        os.remove(str(self.out_path))
         os.remove(str(out_file))

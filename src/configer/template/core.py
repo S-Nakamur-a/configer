@@ -4,7 +4,6 @@ import toml
 import yaml
 import dataclasses
 from functools import reduce
-from collections.abc import Iterable
 import random
 from clint import textui
 
@@ -22,9 +21,10 @@ class ConflictError(ConfigerError):
             f" and {key_and_origins[1][0]} in {key_and_origins[1][1]}")
 
 
-class InvalidDefaultFromError(ConfigerError):
-    def __init__(self, key, default_value, this_value):
-        super(InvalidDefaultFromError, self).__init__(f'{key} is modified from {default_value} to {this_value}')
+class ChangeDefaultError(ConfigerError):
+    def __init__(self, default_file: TypePathLike):
+        super(ChangeDefaultError, self).__init__(
+            f'you might be update {default_file}. If so, please run `configer update`')
 
 
 class InvalidTypeError(ConfigerError):
@@ -58,6 +58,7 @@ class Config(_Config):
                                     f" (default: {textui.colored.green(str(d2[k1]))}, "
                                     f"changed by {self._origins[origin_k]})")
 
+        textui.puts(f"default from {textui.colored.green(pathlib.Path.cwd() / get_default_file_and_hash()[0])}")
         print_dict(dataclasses.asdict(self), default_config, 0, '')
 
         if wait:
@@ -86,10 +87,13 @@ class Config(_Config):
 
 
 class ConfigGenerator:
-    def __init__(self):
+    def __init__(self, assert_identical: bool = False, identical_to: typing.Optional[TypePathLike] = None):
         self._origins: typing.Dict[str, TypePathLike] = {}
         self._update_params: typing.Dict[str, typing.Any] = {}
         self._config: typing.Optional[Config] = None
+        self.assert_identical = assert_identical or identical_to is not None
+        self.default_file = identical_to if identical_to is not None \
+            else pathlib.Path.cwd() / get_default_file_and_hash()[0]
 
     def __load(self, file: pathlib.Path):
         assert isinstance(file, pathlib.Path), f'file expected: pathlib.Path, actual {type(file)}'
@@ -151,6 +155,13 @@ class ConfigGenerator:
 
     def generate(self) -> Config:
         self._config = Config()
+        if self.assert_identical:
+            if not self.default_file.is_file():
+                raise FileNotFoundError(f'{self.default_file} is not a valid file')
+            current_hash = hash_md5(self.default_file)
+            previous_hash = get_default_file_and_hash()[1]
+            if current_hash != previous_hash:
+                raise ChangeDefaultError(self.default_file)
         self._set_params()
         self._check_type()
         return self._config

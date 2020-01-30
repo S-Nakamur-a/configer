@@ -1,6 +1,3 @@
-# Generated From configer
-# Please do not modify.
-# If you want to do, edit your default.yml, and run `configer update` on your terminal.
 
 from typing import List
 from pathlib import Path
@@ -8,17 +5,26 @@ from pathlib import Path
 from prestring.python import PythonModule
 
 
-def generate(my_dataclasses: List[str], params: List[str]):
+def generate(my_dataclasses: List[str], params: List[str], default_file: str, default_hash: str):
     m = PythonModule(width=80, import_unique=True)
-
+    m.stmt("""# Generated From configer
+# Please do not modify.
+# If you want to do, edit your default.yml, and run `configer update` on your terminal.""")
     m.import_("typing")  # import typing
     m.import_("dataclasses")  # import typing
     m.import_("pathlib")  # import typing
     m.import_("toml")  # import typing
     m.import_("yaml")  # import typing
     m.import_("random")  # import typing
-    m.import_("shutil")  # import typing
     m.sep()
+
+    with m.def_('get_default_file_and_hash'):
+        rel_path = Path(default_file).relative_to(Path.cwd())
+        m.stmt(f'return \'{rel_path}\',\\{m.newline}{m.indent*2}\'{default_hash}\'')
+
+    with (Path(__file__).parent / 'utils.py').open("r") as f:
+        lines: List[str] = f.readlines()
+        m.stmt(''.join([l for l in lines if not l.startswith("from")]))
 
     for my_dataclass in my_dataclasses:
         m.stmt(my_dataclass)
@@ -45,4 +51,3 @@ def generate(my_dataclasses: List[str], params: List[str]):
         m.stmt(''.join([l for l in lines if not l.startswith("import")]))
 
     return m
-
