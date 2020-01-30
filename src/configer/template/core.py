@@ -87,14 +87,13 @@ class Config(_Config):
 
 class ConfigGenerator:
     def __init__(self, default_from: TypePathLike):
+        self._origins: typing.Dict[str, TypePathLike] = {}
         self._default_from = default_from
         self._default_params: typing.Dict[str, typing.Any] = self.__load(pathlib.Path(default_from))
         self._update_params: typing.Dict[str, typing.Any] = {}
-        self._origins: typing.Dict[str, TypePathLike] = {}
         self._config: typing.Optional[Config] = None
 
-    @staticmethod
-    def __load(file: pathlib.Path):
+    def __load(self, file: pathlib.Path):
         assert isinstance(file, pathlib.Path), f'file expected: pathlib.Path, actual {type(file)}'
         assert file.is_file(), f'{file} is not a valid file path'
         # Load Setting
@@ -107,7 +106,7 @@ class ConfigGenerator:
         else:
             raise RuntimeError('Not support type (Toml / Yaml)')
 
-        def list_to_tuple(d: typing.Dict[str, typing.Any]):
+        def list_to_tuple(d: typing.MutableMapping[str, typing.Any]):
             for k, v in d.items():
                 if isinstance(v, list):
                     d[k] = tuple(v)
@@ -116,11 +115,16 @@ class ConfigGenerator:
 
         list_to_tuple(params)
 
+        p_keys = set(_get_keys(params))
+
+        for p_key in p_keys:
+            self._origins[p_key] = file
+
         return params
 
     def _check_type(self):
 
-        def _check_type(obj: dataclasses.dataclass):
+        def _check_type(obj):
             for field in dataclasses.fields(obj):
                 child_obj = obj.__getattribute__(field.name)
 
@@ -166,34 +170,37 @@ class ConfigGenerator:
         self._check_type()
         return self._config
 
-    def update_by(self, file_paths: typing.Union[TypePathLike, typing.Iterable[TypePathLike]]):
-        if not isinstance(file_paths, Iterable):
+    def update_by(
+            self,
+            file_paths: typing.Union[
+                TypePathLike,
+                typing.List[TypePathLike],
+                typing.Tuple[TypePathLike]]
+    ):
+        if not isinstance(file_paths, list) and not isinstance(file_paths, tuple):
             file_paths = [file_paths]
-        if len(file_paths) == 0:
+        file_path_list: typing.List[pathlib.Path] = list(map(pathlib.Path, file_paths))
+        if len(file_path_list) == 0:
             return
-        elif len(file_paths) > 1:
-            _update_nested_dict(self._update_params, reduce(self._safe_file_merge, file_paths))
+        elif len(file_path_list) > 1:
+            _update_nested_dict(self._update_params, reduce(self._safe_file_merge, map(self.__load, file_path_list)))
         else:
-            d = self.__load(file_paths[0])
+            d = self.__load(file_path_list[0])
             _update_nested_dict(self._update_params, d)
             for d_k in _get_keys(d):
-                self._origins[d_k] = file_paths[0]
+                self._origins[d_k] = file_path_list[0]
         return self
 
-    def _safe_file_merge(self, file_1: TypePathLike, file_2: TypePathLike) \
+    def _safe_file_merge(self, d1: typing.Dict[str, typing.Any], d2: typing.Dict[str, typing.Any]) \
             -> typing.Dict[str, typing.Any]:
-        d1 = self.__load(pathlib.Path(file_1))
-        d2 = self.__load(pathlib.Path(file_2))
 
         d1_keys = set(_get_keys(d1))
         d2_keys = set(_get_keys(d2))
 
         for d1_key in d1_keys:
-            self._origins[d1_key] = file_1
             for d2_key in d2_keys:
-                self._origins[d2_key] = file_2
                 if d1_key.startswith(d2_key) or d2_key.startswith(d1_key):
-                    raise ConflictError(((d1_key, file_1), (d2_key, file_2)))
+                    raise ConflictError(((d1_key, self._origins[d1_key]), (d2_key, self._origins[d2_key])))
 
         _update_nested_dict(d1, d2)
         return d1
@@ -213,8 +220,8 @@ class ConfigGenerator:
         object.__setattr__(self._config, '_origins', self._origins)
 
 
-def _get_keys(d: typing.Dict[str, typing.Any], parent_key: str = ''):
-    keys = []
+def _get_keys(d: typing.MutableMapping[str, typing.Any], parent_key: str = ''):
+    keys: typing.List[str] = []
     for k in d:
         if isinstance(d[k], dict):
             keys.extend(_get_keys(d[k], parent_key=f'{parent_key}/{k}'))
