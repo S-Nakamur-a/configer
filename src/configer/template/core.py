@@ -93,7 +93,7 @@ class ConfigGenerator:
         self._config: typing.Optional[Config] = None
         self.assert_identical = assert_identical or identical_to is not None
         self.default_file = identical_to
-        if assert_identical and identical_to is None:
+        if identical_to is None:
             d_path = get_default_file_and_hash()[0]
             if d_path[0] == '/':
                 self.default_file = pathlib.Path(d_path)
@@ -216,7 +216,7 @@ class ConfigGenerator:
                     try:
                         __set(obj.__getattribute__(k), v)
                     except AttributeError:
-                        raise AttributeError(f'キー {k} が{self._default_from}で定義されていません')
+                        raise AttributeError(f'キー {k} が{self.default_file}で定義されていません')
 
         __set(self._config, self._update_params)
         object.__setattr__(self._config, '_origins', self._origins)
