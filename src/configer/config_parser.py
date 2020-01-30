@@ -22,7 +22,7 @@ class ConfigParser:
         if isinstance(value, list) or isinstance(value, tuple):
             keys_and_defaults = [self.get_type_and_default(v, this_class_name) for v in value]
             return f'typing.Tuple[{", ".join([k for k, d in keys_and_defaults])}]',\
-                   f'({",".join(tuple([str(d) for k, d in keys_and_defaults]))})'
+                   f'({", ".join(tuple([str(d) for k, d in keys_and_defaults]))})'
 
 
         # Dict
