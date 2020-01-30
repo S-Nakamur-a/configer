@@ -1,4 +1,4 @@
-# Generate From configer
+# Generated From configer
 # Please do not modify.
 # If you want to do, edit your default.yml, and run `configer update` on your terminal.
 
