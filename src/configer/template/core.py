@@ -92,8 +92,14 @@ class ConfigGenerator:
         self._update_params: typing.Dict[str, typing.Any] = {}
         self._config: typing.Optional[Config] = None
         self.assert_identical = assert_identical or identical_to is not None
-        self.default_file = identical_to if identical_to is not None \
-            else pathlib.Path.cwd() / get_default_file_and_hash()[0]
+        self.default_file = identical_to
+        if assert_identical and identical_to is None:
+            d_path = get_default_file_and_hash()[0]
+            if d_path[0] == '/':
+                self.default_file = pathlib.Path(d_path)
+            else:
+                self.default_file = pathlib.Path.cwd() / d_path
+
 
     def __load(self, file: pathlib.Path):
         assert isinstance(file, pathlib.Path), f'file expected: pathlib.Path, actual {type(file)}'

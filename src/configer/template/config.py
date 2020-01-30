@@ -19,8 +19,11 @@ def generate(my_dataclasses: List[str], params: List[str], default_file: str, de
     m.sep()
 
     with m.def_('get_default_file_and_hash'):
-        rel_path = Path(default_file).relative_to(Path.cwd())
-        m.stmt(f'return \'{rel_path}\',\\{m.newline}{m.indent*2}\'{default_hash}\'')
+        try:
+            path = Path(default_file).relative_to(Path.cwd())
+        except ValueError:
+            path = Path(default_file).absolute()
+        m.stmt(f'return \'{path}\',\\{m.newline}{m.indent*2}\'{default_hash}\'')
 
     with (Path(__file__).parent / 'utils.py').open("r") as f:
         lines: List[str] = f.readlines()
