@@ -20,7 +20,7 @@ def generate(my_dataclasses: List[str], params: List[str]):
         m.stmt(my_dataclass)
         m.stmt(m.newline)
 
-    m.stmt("@dataclasses.dataclass")
+    m.stmt("@dataclasses.dataclass(frozen=True)")
     with m.class_("_Config"):
         post_inits = []
         for key in params:
@@ -28,7 +28,7 @@ def generate(my_dataclasses: List[str], params: List[str]):
                 s = key.split(' ')
                 key_name = s[0][:-1]
                 class_name = s[1]
-                post_inits.append(f'self.{key_name} = {class_name}()')
+                post_inits.append(f"super().__setattr__('{key_name}', {class_name}())")
             m.stmt(key)
         m.stmt(m.newline)
         if len(post_inits):

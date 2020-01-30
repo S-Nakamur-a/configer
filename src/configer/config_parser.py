@@ -64,7 +64,7 @@ class ConfigParser:
         this_key_class_name = self.to_class_name(key)
         key_name, default = self.get_type_and_default(value, this_key_class_name, parent_class_name)
         if default == 'None' and key_name != 'None':
-            self.post_inits.append(f"self.{key} = {key_name}()")
+            self.post_inits.append(f"super().__setattr__('{key}', {key_name}())")
             return f'{key}: {key_name} = dataclasses.field(init=False)'
         return f'{key}: {key_name} = {default}'
 
@@ -81,13 +81,13 @@ class ConfigParser:
         members = f'\n{indent}'.join(members)
         if len(self.post_inits) > 0:
             post_inits = f'\n{indent}{indent}'.join([f'{pi}' for pi in self.post_inits])
-            class_def = f"@dataclasses.dataclass\n" \
+            class_def = f"@dataclasses.dataclass(frozen=True)\n" \
                         f"class {class_name}:\n" \
                         f"{indent}{members}\n\n" \
                         f"{indent}def __post_init__(self):\n" \
                         f"{indent}{indent}{post_inits}"
         else:
-            class_def = f"@dataclasses.dataclass\n" \
+            class_def = f"@dataclasses.dataclass(frozen=True)\n" \
                         f"class {class_name}:\n" \
                         f"{indent}{members}"
         self.post_inits = []

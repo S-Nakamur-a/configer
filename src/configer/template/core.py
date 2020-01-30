@@ -33,7 +33,7 @@ class InvalidTypeError(ConfigerError):
 
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class Config(_Config):
     _origins: typing.ClassVar[typing.Dict[str, TypePathLike]]
 
@@ -202,7 +202,7 @@ class ConfigGenerator:
         def __set(obj, d: typing.Dict[str, typing.Any]):
             for k, v in d.items():
                 if not isinstance(v, dict):
-                    setattr(obj, k, v)
+                    object.__setattr__(obj, k, v)
                 else:
                     try:
                         __set(obj.__getattribute__(k), v)
@@ -210,7 +210,7 @@ class ConfigGenerator:
                         raise AttributeError(f'キー {k} が{self._default_from}で定義されていません')
 
         __set(self._config, self._update_params)
-        self._config._origins = self._origins
+        object.__setattr__(self._config, '_origins', self._origins)
 
 
 def _get_keys(d: typing.Dict[str, typing.Any], parent_key: str = ''):
