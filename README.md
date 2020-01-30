@@ -9,11 +9,11 @@ yamlとかで管理したいけどそうすると補完が効かなくなるし�
 - 全てのconfigのデフォルト値を１つのyamlに記述しておく（yacsのpythonファイルと同じノリ）
 - configer cliを提供しているので、上のyamlからdefault.pyを生成する
 - default.pyに、ConfigGeneratorとConfigがクラスとして用意されている
-- main.pyとかで `config = ConfigGenerator(default_from='default.yml').generate()` のように書けば, yamlファイルの内容をPythonオブジェクトとして生成してくれる
-- `config = ConfigGenerator(default_from='default.yml').update('hoge.yml').generate()`とかで一部を上書きして使用することも出来る（型が一致していないと落ちる）
+- main.pyとかで `config = ConfigGenerator().generate()` のように書けば, yamlファイルの内容をPythonオブジェクトとして生成してくれる
+- `config = ConfigGenerator().update('hoge.yml').generate()`とかで一部を上書きして使用することも出来る（型が一致していないと落ちる）
 - `config.pprint(wait=True)`とかでconfigを見やすく表示してくれる
 - `config.save(out_path, 'yaml')`とかで最終的なconfigを保存してくれる
-- 次回は`config = ConfigGenerator(default_from='default.yml').update(out_path).generate()`で同じ内容を復元できる
+- 次回は`config = ConfigGenerator().update(out_path).generate()`で同じ内容を復元できる
 
 ## 使用方法
 
