@@ -20,7 +20,7 @@ class TestConfig(unittest.TestCase):
     def test_load(self):
         from tests.config import ConfigGenerator, ConflictError, InvalidTypeError, ChangeDefaultError
 
-        config = ConfigGenerator(assert_identical=True) \
+        config = ConfigGenerator(assert_identical_to_default=True) \
             .update_by([self.config_models_path, self.config_optimizer_path]) \
             .generate()
 

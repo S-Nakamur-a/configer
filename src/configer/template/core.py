@@ -87,11 +87,11 @@ class Config(_Config):
 
 
 class ConfigGenerator:
-    def __init__(self, assert_identical: bool = False, identical_to: typing.Optional[TypePathLike] = None):
+    def __init__(self, assert_identical_to_default: bool = False, identical_to: typing.Optional[TypePathLike] = None):
         self._origins: typing.Dict[str, TypePathLike] = {}
         self._update_params: typing.Dict[str, typing.Any] = {}
         self._config: typing.Optional[Config] = None
-        self.assert_identical = assert_identical or identical_to is not None
+        self.assert_identical = assert_identical_to_default or identical_to is not None
         self.default_file = identical_to
         if identical_to is None:
             d_path = get_default_file_and_hash()[0]

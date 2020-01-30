@@ -62,7 +62,7 @@ configer create --setting setting/default.yml --output default.py
 ### コード上から利用する
 ```python
 from default import ConfigGenerator, Config
-config: Config = ConfigGenerator(default_from='setting/default.yml').generate()  # default値が使用される
+config: Config = ConfigGenerator(assert_identical_to_default=True).generate()  # 生成に使用したymlから変更がないかを確認してconfigをloadする
 config.pprint(wait=False)  # configを表示してくれる
 in_channels = config.models.BaseMLP.in_channels  # サジェストが出るし、int型であることを追ってくれる
 ```
@@ -92,10 +92,10 @@ training:
 ### コード内で呼び出す
 
 ```python
-config = ConfigGenerator(default_from='setting/default.yml')\
+config = ConfigGenerator()\
             .update(['setting/optimizer.yml', 'setting/training.yml'])  # optimizerとtrainingで同じ項目を上書きしようとするとエラーになる
             .generate()  # default値が上書きされて使用される
-config = ConfigGenerator(default_from='setting/default.yml')\
+config = ConfigGenerator()\
             .update('setting/optimizer.yml')  # updateを分ければ衝突項目があっても問題ない
             .update('setting/training.yml')  # 仮に衝突する項目がある場合は、後からupdateしたほうが優先される
             .generate()  # default値が上書きされて使用される
