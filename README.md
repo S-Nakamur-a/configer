@@ -10,10 +10,10 @@ yamlとかで管理したいけどそうすると補完が効かなくなるし�
 - configer cliを提供しているので、上のyamlからdefault.pyを生成する
 - default.pyに、ConfigGeneratorとConfigがクラスとして用意されている
 - main.pyとかで `config = ConfigGenerator().generate()` のように書けば, yamlファイルの内容をPythonオブジェクトとして生成してくれる
-- `config = ConfigGenerator().update('hoge.yml').generate()`とかで一部を上書きして使用することも出来る（型が一致していないと落ちる）
+- `config = ConfigGenerator().update_by('hoge.yml').generate()`とかで一部を上書きして使用することも出来る（型が一致していないと落ちる）
 - `config.pprint(wait=True)`とかでconfigを見やすく表示してくれる
-- `config.save(out_path, 'yaml')`とかで最終的なconfigを保存してくれる
-- 次回は`config = ConfigGenerator().update(out_path).generate()`で同じ内容を復元できる
+- `config.save_as(out_path, 'yaml')`とかで最終的なconfigを保存してくれる
+- 次回は`config = ConfigGenerator().update_by(out_path).generate()`で同じ内容を復元できる
 
 ## 使用方法
 
@@ -93,11 +93,11 @@ training:
 
 ```python
 config = ConfigGenerator()\
-            .update(['setting/optimizer.yml', 'setting/training.yml'])  # optimizerとtrainingで同じ項目を上書きしようとするとエラーになる
+            .update_by(['setting/optimizer.yml', 'setting/training.yml'])  # optimizerとtrainingで同じ項目を上書きしようとするとエラーになる
             .generate()  # default値が上書きされて使用される
 config = ConfigGenerator()\
-            .update('setting/optimizer.yml')  # updateを分ければ衝突項目があっても問題ない
-            .update('setting/training.yml')  # 仮に衝突する項目がある場合は、後からupdateしたほうが優先される
+            .update_by('setting/optimizer.yml')  # updateを分ければ衝突項目があっても問題ない
+            .update_by('setting/training.yml')  # 仮に衝突する項目がある場合は、後からupdateしたほうが優先される
             .generate()  # default値が上書きされて使用される
 
 # 保存
