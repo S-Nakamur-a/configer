@@ -58,7 +58,7 @@ class Config(_Config):
                                     f" (default: {textui.colored.green(str(d2[k1]))}, "
                                     f"changed by {self._origins[origin_k]})")
 
-        textui.puts(f"default from {textui.colored.green(pathlib.Path.cwd() / get_default_file_and_hash()[0])}")
+        textui.puts(f"default from {textui.colored.green(str(pathlib.Path.cwd() / get_default_file_and_hash()[0]))}")
         print_dict(dataclasses.asdict(self), default_config, 0, '')
 
         if wait:
