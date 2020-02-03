@@ -20,7 +20,7 @@ def generate(my_dataclasses: List[str], params: List[str], default_file: str, de
 
     with m.def_('get_default_file_and_hash'):
         try:
-            path = Path(default_file).relative_to(Path.cwd())
+            path = Path(default_file).absolute().relative_to(Path.cwd())
         except ValueError:
             path = Path(default_file).absolute()
         m.stmt(f'return \'{path}\',\\{m.newline}{m.indent*2}\'{default_hash}\'')
