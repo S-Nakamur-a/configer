@@ -87,7 +87,7 @@ class Config(_Config):
 
 
 class ConfigGenerator:
-    def __init__(self, assert_identical_to_default: bool = False, identical_to: typing.Optional[TypePathLike] = None):
+    def __init__(self, assert_identical_to_default: bool = True, identical_to: typing.Optional[TypePathLike] = None):
         self._origins: typing.Dict[str, TypePathLike] = {}
         self._update_params: typing.Dict[str, typing.Any] = {}
         self._config: typing.Optional[Config] = None
