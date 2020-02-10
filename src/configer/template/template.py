@@ -10,14 +10,9 @@ def generate(my_dataclasses: List[str], params: List[str], default_file: str, de
     m.stmt("""# Generated From configer
 # Please do not modify.
 # If you want to do, edit your default.yml, and run `configer update` on your terminal.""")
-    m.import_("typing")  # import typing
-    m.import_("dataclasses")  # import typing
-    m.import_("pathlib")  # import typing
-    m.import_("toml")  # import typing
-    m.import_("yaml")  # import typing
-    m.import_("random")  # import typing
-    m.sep()
 
+    embedding_file(m, Path(__file__).parent / 'imports.py')
+    m.sep()
     with m.def_('get_default_file_and_hash'):
         try:
             path = Path(default_file).absolute().relative_to(Path.cwd())
@@ -25,9 +20,12 @@ def generate(my_dataclasses: List[str], params: List[str], default_file: str, de
             path = Path(default_file).absolute()
         m.stmt(f'return \'{path}\',\\{m.newline}{m.indent*2}\'{default_hash}\'')
 
-    with (Path(__file__).parent / 'utils.py').open("r") as f:
-        lines: List[str] = f.readlines()
-        m.stmt(''.join([l for l in lines if not l.startswith("from")]))
+    embedding_file(m, Path(__file__).parent / 'type_hint.py')
+    m.sep()
+    embedding_file(m, Path(__file__).parent / 'errors.py')
+    m.sep()
+    embedding_file(m, Path(__file__).parent / 'utils.py')
+    m.sep()
 
     for my_dataclass in my_dataclasses:
         m.stmt(my_dataclass)
@@ -43,14 +41,33 @@ def generate(my_dataclasses: List[str], params: List[str], default_file: str, de
                 class_name = s[1]
                 post_inits.append(f"super().__setattr__('{key_name}', {class_name}())")
             m.stmt(key)
-        m.stmt(m.newline)
+        m.sep()
         if len(post_inits):
             with m.method('__post_init__'):
                 for post_init in post_inits:
-                    m.stmt(post_init)
-
-    with (Path(__file__).parent / 'core.py').open("r") as f:
-        lines: List[str] = f.readlines()
-        m.stmt(''.join([l for l in lines if not l.startswith("import")]))
+                    m.stmt(post_init, end="")
+            m.body.pop()
+    embedding_file(m, Path(__file__).parent / 'core.py')
 
     return m
+
+
+def embedding_file(python_module: PythonModule, path: Path):
+    """
+    # no include - # no includeで囲まれた領域以外を読み込む
+    Args:
+        python_module:
+        path:
+
+    Returns:
+
+    """
+    with path.open("r") as f:
+        raw_lines: List[str] = f.readlines()
+        include_line = True
+        for raw_line in raw_lines:
+            if raw_line.startswith('# no include'):
+                include_line = not include_line
+                continue
+            if include_line:
+                python_module.append(raw_line)
