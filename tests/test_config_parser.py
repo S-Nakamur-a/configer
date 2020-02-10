@@ -1,5 +1,5 @@
 import unittest
-from configer.command import ConfigParser
+from src.configer.command import ConfigParser
 
 
 class TestConfig(unittest.TestCase):
