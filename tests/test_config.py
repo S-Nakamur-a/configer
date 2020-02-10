@@ -1,7 +1,7 @@
 import os
 import unittest
 from pathlib import Path
-from src.configer.command import Configer
+from configer.command import Configer
 
 
 class TestConfig(unittest.TestCase):
