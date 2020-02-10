@@ -1,38 +1,28 @@
+# no include
 import typing
 import pathlib
 import toml
 import yaml
 import dataclasses
-from functools import reduce
 import random
+
+from .type_hint import TypePathLike
+from .errors import InvalidTypeError, ChangeDefaultError, ConflictError
+from .utils import hash_md5
 from clint import textui
+import functools
 
-TypePathLike = typing.Union[str, pathlib.Path]
 
-
-class ConfigerError(Exception):
+@dataclasses.dataclass(frozen=True)
+class _Config:
     pass
 
 
-class ConflictError(ConfigerError):
-    def __init__(self, key_and_origins: typing.Tuple[typing.Tuple[str, TypePathLike], typing.Tuple[str, TypePathLike]]):
-        super(ConflictError, self).__init__(
-            f"Detect conflict. Check {key_and_origins[0][0]} in {key_and_origins[0][1]}"
-            f" and {key_and_origins[1][0]} in {key_and_origins[1][1]}")
+def get_default_file_and_hash() -> typing.Tuple[str, str]:
+    pass
 
 
-class ChangeDefaultError(ConfigerError):
-    def __init__(self, default_file: TypePathLike):
-        super(ChangeDefaultError, self).__init__(
-            f'you might be update {default_file}. If so, please run `configer update`')
-
-
-class InvalidTypeError(ConfigerError):
-    def __init__(self, key: str, expected_type: str, actual_type: str):
-        super(InvalidTypeError, self).__init__(f"{key} is expected {expected_type}, actual {actual_type}")
-
-
-
+# no include
 @dataclasses.dataclass(frozen=True)
 class Config(_Config):
     _origins: typing.ClassVar[typing.Dict[str, TypePathLike]]
@@ -87,7 +77,10 @@ class Config(_Config):
 
 
 class ConfigGenerator:
-    def __init__(self, assert_identical_to_default: bool = True, identical_to: typing.Optional[TypePathLike] = None):
+    def __init__(self,
+                 assert_identical_to_default: bool = True,
+                 identical_to: typing.Optional[TypePathLike] = None
+                 ):
         self._origins: typing.Dict[str, TypePathLike] = {}
         self._update_params: typing.Dict[str, typing.Any] = {}
         self._config: typing.Optional[Config] = None
@@ -99,7 +92,6 @@ class ConfigGenerator:
                 self.default_file = pathlib.Path(d_path)
             else:
                 self.default_file = pathlib.Path.cwd() / d_path
-
 
     def __load(self, file: pathlib.Path):
         assert isinstance(file, pathlib.Path), f'file expected: pathlib.Path, actual {type(file)}'
@@ -185,7 +177,8 @@ class ConfigGenerator:
         if len(file_path_list) == 0:
             return
         elif len(file_path_list) > 1:
-            _update_nested_dict(self._update_params, reduce(self._safe_file_merge, map(self.__load, file_path_list)))
+            _update_nested_dict(self._update_params,
+                                functools.reduce(self._safe_file_merge, map(self.__load, file_path_list)))
         else:
             d = self.__load(file_path_list[0])
             _update_nested_dict(self._update_params, d)
