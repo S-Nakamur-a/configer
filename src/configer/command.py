@@ -7,7 +7,7 @@ from clint.textui import colored, puts
 from prestring import output as prestring_output
 
 from .config_parser import ConfigParser
-from .template.config import generate
+from .template.template import generate
 from .template.utils import hash_md5
 
 
@@ -34,7 +34,7 @@ class Configer:
 
     @staticmethod
     def create(args):
-        """create config.py form default.toml and generate config.py"""
+        """create template.py form default.toml and generate template.py"""
         setting_file = args.setting
         output_file = args.output
         Configer.create_from_file(Path(setting_file), Path(output_file))
@@ -43,7 +43,7 @@ class Configer:
     def update(args):
         """logファイル内のすべてのファイルについてhashから変更を検出し更新をかける"""
         if not lock_file_path.is_file():
-            print("You should create config.py from default.toml")
+            print("You should create template.py from default.toml")
             exit()
 
         with lock_file_path.open('r') as f:
@@ -64,7 +64,7 @@ class Configer:
     def create_from_file(setting_file_path: Path, output_file_path: Path):
         assert setting_file_path.is_file(), setting_file_path
 
-        template_file = Path(__file__).parent / 'template' / 'config.py'
+        template_file = Path(__file__).parent / 'template' / 'template.py'
         assert template_file.is_file(), str(template_file)
 
         # Load Setting
@@ -103,11 +103,11 @@ def get_arg_parser():
 
     # config create
     config_create = subparsers.add_parser(
-        'create', help='create config.py from your default.toml')
+        'create', help='create template.py from your default.toml')
     config_create.add_argument(
         '-s', '--setting', required=False, type=str, help='path to setting file [toml]', default='setting/default.toml')
     config_create.add_argument(
-        '-o', '--output', required=False, type=str, help='path to output config file [python]', default='config.py')
+        '-o', '--output', required=False, type=str, help='path to output config file [python]', default='template.py')
     config_create.set_defaults(handler=Configer.create)
 
     config_update = subparsers.add_parser('update', help='update your config file [python]')
