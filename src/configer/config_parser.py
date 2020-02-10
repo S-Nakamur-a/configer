@@ -32,7 +32,7 @@ class ConfigParser:
             if parent_class_name is None:
                 self.make_dataclass_from_dict(this_class_name, value)
                 parent_class_name = ''
-            return parent_class_name + this_class_name, 'None'
+            return parent_class_name + this_class_name, None
 
         # primitive types
         # Python表記に直していく
@@ -50,12 +50,8 @@ class ConfigParser:
 
     def parse(self, key: str, value: Any, parent_class_name: Optional[str] = None) -> str:
         """
-        key: TypeOfValue というPythonの型アノテーションを作成する
-        ValueがDictのとき、DictをNamedTupleを継承したクラスに変換して型アノテーションする
-
         ex)
-        parse('hoge', 12, None) = 'hoge: int'
-        parse('fuga', {'piyo': 12}, None) = fuga: Fuga  （class Fuga(NamedTuple): piyo: int は別に作られる）
+        parse('hoge', 12, None) = 'hoge: int = 12'
         :param key:
         :param value:
         :param parent_class_name:
@@ -63,20 +59,19 @@ class ConfigParser:
         """
         this_key_class_name = self.to_class_name(key)
         key_name, default = self.get_type_and_default(value, this_key_class_name, parent_class_name)
-        if default == 'None' and key_name != 'None':
+        if default is None:
             self.post_inits.append(f"super().__setattr__('{key}', {key_name}())")
             return f'{key}: {key_name} = dataclasses.field(init=False)'
         return f'{key}: {key_name} = {default}'
 
-    def make_dataclass_from_dict(self, class_name: str, _dict: dict) -> None:
+    def make_dataclass_from_dict(self, class_name: str, class_setting_values: dict) -> None:
         # _dictのvalueにdictの型が存在しなくなるまで掘っていく
-        for k, v in _dict.items():
+        for k, v in class_setting_values.items():
             if isinstance(v, dict):
                 self.make_dataclass_from_dict(class_name + self.to_class_name(k), v)
-            assert type(k) == str
-
         # _dictのkeyとvalueからdataclassを生成する
-        members = [self.parse(k, v, parent_class_name=class_name) for k, v in _dict.items()]
+        self.post_inits.clear()
+        members = [self.parse(k, v, parent_class_name=class_name) for k, v in class_setting_values.items()]
         indent = "    "
         members = f'\n{indent}'.join(members)
         if len(self.post_inits) > 0:
@@ -90,7 +85,6 @@ class ConfigParser:
             class_def = f"@dataclasses.dataclass(frozen=True)\n" \
                         f"class {class_name}:\n" \
                         f"{indent}{members}"
-        self.post_inits = []
         # 既に登録済みのclassはスルーする
         if class_name in self.dataclasses and len(self.dataclasses[class_name]) > len(class_def):
             return

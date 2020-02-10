@@ -35,7 +35,7 @@ def generate(my_dataclasses: List[str], params: List[str], default_file: str, de
     with m.class_("_Config"):
         post_inits = []
         for key in params:
-            if 'dataclasses.field(init=False)' in key:
+            if key.endswith('dataclasses.field(init=False)'):
                 s = key.split(' ')
                 key_name = s[0][:-1]
                 class_name = s[1]
