@@ -3,7 +3,7 @@
 This is a configuration management tool for Python projects.
 
 It is an unavoidable problem that your editor does not complement variable names and predict their types
-when loading setting values ​​from YAML files.
+when you load setting values ​​from YAML files.
 
 This tool provides a converter from your YAML files to python files with type annotations.
 
