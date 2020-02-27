@@ -43,7 +43,7 @@ def generate(my_dataclasses: List[str], params: List[str], default_file: str, de
             m.stmt(key)
         m.sep()
         if len(post_inits):
-            with m.method('__post_init__'):
+            with m.def_('__post_init__'):
                 for post_init in post_inits:
                     m.stmt(post_init, end="")
             m.body.pop()
