@@ -1,11 +1,9 @@
 # Configer
 
-This is a configuration management tool for Python projects.
-
-It is an inevitable problem that your editor does not complement variable names and predict their types
-when you load setting values ​​from YAML files.
-
-This tool provides a converter from your YAML files to python files with type annotations.
+This tool generates a corresponding Python script from a YAML file.
+The Python script defines the Config class, which declares all values written in YAML with type annotations.
+This allows the editor to perform autocomplete when accessing configuration values during coding. Also, the IDE detects type mismatches, which reduces bugs.
+As an additional feature, it is possible to detect which YAML file initializes or updates each setting values.
 
 ## How to installs
 
@@ -34,13 +32,13 @@ optimizer:
 scheduler: cosine
 ```
 
-### 2. Convert the default YAML file into Python script with `configer`
+### 2. Convert the default YAML file into Python script by `configer`
 
 ```shell script
 $ configer create -s <ProjectDir>/config/default.yml -o <ProjectDir>/src/config/default.py
 ```
 
-### 3. Import the converted Python script in other scripts.
+### 3. Use the Python script in other scripts.
 
 example: main.py
 ```python
