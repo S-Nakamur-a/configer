@@ -1,5 +1,5 @@
-from typing import Any, Optional, Tuple
 from collections import OrderedDict
+from typing import Any, Optional, Tuple
 
 
 class ConfigParser:
@@ -7,7 +7,8 @@ class ConfigParser:
         self.dataclasses = OrderedDict()
         self.post_inits = []
 
-    def get_type_and_default(self, value: Any, this_class_name: Optional[str] = None, parent_class_name: Optional[str] = None)\
+    def get_type_and_default(self, value: Any, this_class_name: Optional[str] = None,
+                             parent_class_name: Optional[str] = None) \
             -> Tuple[str, Any]:
         """
         設定ファイルから型名を得る
@@ -21,9 +22,10 @@ class ConfigParser:
         # Tupleとして保存し、各要素の型を記述する
         if isinstance(value, list) or isinstance(value, tuple):
             keys_and_defaults = [self.get_type_and_default(v, this_class_name) for v in value]
-            return f'typing.Tuple[{", ".join([k for k, d in keys_and_defaults])}]',\
-                   f'({", ".join(tuple([str(d) for k, d in keys_and_defaults]))})'
-
+            key_type = f'typing.Tuple[{", ".join([k for k, d in keys_and_defaults])}]'
+            key_name = f'({", ".join(tuple([str(d) for k, d in keys_and_defaults]))})' if len(
+                keys_and_defaults) > 1 else f'({keys_and_defaults[0][1]}, )'
+            return key_type, key_name
 
         # Dict
         # 新たなdataclassとして新規クラス名を作成する
