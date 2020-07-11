@@ -6,7 +6,7 @@ from prestring.python import PythonModule
 
 
 def generate(my_dataclasses: List[str], params: List[str], default_file: str, default_hash: str):
-    m = PythonModule(width=80, import_unique=True)
+    m = PythonModule(width=80)
     m.stmt("""# Generated From configer
 # Please do not modify.
 # If you want to do, edit your default.yml, and run `configer update` on your terminal.""")
