@@ -48,21 +48,21 @@ class ConfigParser:
             return 'None', 'None'
         raise NotImplementedError(f'Type: {type(value)} not supported')
 
-    def parse(self, key: str, value: Any, parent_class_name: Optional[str] = None) -> str:
+    def parse(self, key_name: str, value: Any, parent_class_name: Optional[str] = None) -> str:
         """
         ex)
         parse('hoge', 12, None) = 'hoge: int = 12'
-        :param key:
+        :param key_name:
         :param value:
         :param parent_class_name:
         :return:
         """
-        this_key_class_name = self.to_class_name(key)
-        key_name, default = self.get_type_and_default(value, this_key_class_name, parent_class_name)
-        if default is None:
-            self.post_inits.append(f"super().__setattr__('{key}', {key_name}())")
-            return f'{key}: {key_name} = dataclasses.field(init=False)'
-        return f'{key}: {key_name} = {default}'
+        key_class_name = self.to_class_name(key_name)
+        key_type_name, default_value = self.get_type_and_default(value, key_class_name, parent_class_name)
+        if default_value is None:
+            self.post_inits.append(f"super().__setattr__('{key_name}', {key_type_name}())")
+            return f'{key_name}: {key_type_name} = dataclasses.field(init=False)'
+        return f'{key_name}: {key_type_name} = {default_value}'
 
     def make_dataclass_from_dict(self, class_name: str, class_setting_values: dict) -> None:
         # _dictのvalueにdictの型が存在しなくなるまで掘っていく
