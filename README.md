@@ -19,7 +19,7 @@ example: *\<ProjectDir\>*/config/default.yml
 
 ```yaml
 models:
-  BaseMLP:
+  base_mlp:
     in_channels: 3
     middle_channels: 64
     out_channels: 3
@@ -58,7 +58,7 @@ config.models.BaseMLP.in_channels = 1  # raises Error. These setting values are 
 
 ```yaml
 models:
-  BaseMLP:
+  base_mlp:
     in_channels: 3
     middle_channels: 32  # <- previous is 64
     out_channels: 3
@@ -87,7 +87,7 @@ If you do not update your Python script,
 model.yml
 ```yaml
 models:
-  BaseMLP:
+  base_mlp:
     middle_channels: 32  # <- default is 64
 ```
 
