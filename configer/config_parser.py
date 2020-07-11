@@ -57,6 +57,7 @@ class ConfigParser:
         :param parent_class_name:
         :return:
         """
+        assert key_name.isidentifier(), f'{key_name} is not a valid Python identifier'
         if key_name.lower() != key_name:
             print("Sorry, all key names must be in lowercase.")
         key_class_name = self.to_class_name(key_name)
