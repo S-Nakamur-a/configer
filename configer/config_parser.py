@@ -57,6 +57,8 @@ class ConfigParser:
         :param parent_class_name:
         :return:
         """
+        if key_name.lower() != key_name:
+            print("Sorry, all key names must be in lowercase.")
         key_class_name = self.to_class_name(key_name)
         key_type_name, default_value = self.get_type_and_default(value, key_class_name, parent_class_name)
         if default_value is None:

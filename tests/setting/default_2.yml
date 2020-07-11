@@ -1,5 +1,5 @@
 models:
-  BaseMLP:
+  base_mlp:
     in_channels: 32
     middle_channels: 64
     middle_depth: 3
@@ -7,7 +7,7 @@ models:
     activation: ReLU
     last_activation: ''
     drop_out: 0.5
-    batch_norm: false
+    base_mlp: false
 use_model: BaseMLP
 optimizer:
   adam:

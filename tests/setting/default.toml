@@ -1,6 +1,6 @@
 use_model = 'BaseMLP'
 
-[models.BaseMLP]
+[models.base_mlp]
 in_channels = 32
 middle_channels = 64
 middle_depth = 3

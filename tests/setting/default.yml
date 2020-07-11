@@ -1,5 +1,5 @@
 models:
-  BaseMLP:
+  base_mlp:
     in_channels: 32
     middle_channels: 64
     middle_depth: 3
@@ -8,7 +8,7 @@ models:
     last_activation: ''
     drop_out: 0.5
     batch_norm: false
-use_model: BaseMLP
+use_model: base_mlp
 optimizer:
   adam:
     alpha: 0.1

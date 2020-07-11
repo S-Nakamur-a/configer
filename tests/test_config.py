@@ -27,7 +27,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.training.batchsize, 64)
         self.assertEqual(config.models.base_mlp.in_channels, 3)
         self.assertEqual(config.models.base_mlp.batch_norm, False)
-        self.assertEqual(config.use_model, 'BaseMLP')
+        self.assertEqual(config.use_model, 'base_mlp')
 
         config = ConfigGenerator().generate()
         self.assertEqual(config.models.base_mlp.in_channels, 32)
