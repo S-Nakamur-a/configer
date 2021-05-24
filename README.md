@@ -88,7 +88,8 @@ model.yml
 ```yaml
 models:
   base_mlp:
-    middle_channels: 32  # <- default is 64
+    middle_channels: 32
+loss: mean_absolute_error
 ```
 
 loss.yml
